@@ -1146,7 +1146,7 @@ if {[catch {
 	&& [catch {
 		# beware that from the .git dir this sets _gitdir to .
 		# and _prefix to the empty string
-		set _gitdir [git rev-parse --git-dir]
+		set _gitdir [git rev-parse --absolute-git-dir]
 		set _prefix [git rev-parse --show-prefix]
 	} err]} {
 	load_config 1
@@ -1155,7 +1155,7 @@ if {[catch {
 		exit 1
 	}
 	if {[catch {
-		set _gitdir [git rev-parse --git-dir]
+		set _gitdir [git rev-parse --absolute-git-dir]
 	} err]} {
 		catch {wm withdraw .}
 		error_popup [strcat [mc "Unusable repo/worktree:"] " [pwd] "\n\n$err"]
@@ -1173,13 +1173,6 @@ if {$hashalgorithm eq "sha1"} {
 } else {
 	puts stderr "Unknown hash algorithm: $hashalgorithm"
 	exit 1
-}
-
-# we expand the _gitdir when it's just a single dot (i.e. when we're being
-# run from the .git dir itself) lest the routines to find the worktree
-# get confused
-if {$_gitdir eq "."} {
-	set _gitdir [pwd]
 }
 
 if {![file isdirectory $_gitdir]} {
