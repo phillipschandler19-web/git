@@ -1122,6 +1122,22 @@ unset argv0dir
 ##
 ## repository setup
 
+proc set_gitdir_vars {} {
+	global _gitdir _gitworktree env
+	if {$_gitdir ne {}} {
+		set env(GIT_DIR) $_gitdir
+	}
+	if {$_gitworktree ne {}} {
+		set env(GIT_WORK_TREE) $_gitworktree
+	}
+}
+
+proc unset_gitdir_vars {} {
+	global env
+	catch {unset env(GIT_DIR)}
+	catch {unset env(GIT_WORK_TREE)}
+}
+
 set picked 0
 if {[catch {
 		set _gitdir $env(GIT_DIR)
@@ -1207,8 +1223,8 @@ if {[lindex $_reponame end] eq {.git}} {
 	set _reponame [lindex $_reponame end]
 }
 
-set env(GIT_DIR) $_gitdir
-set env(GIT_WORK_TREE) $_gitworktree
+# Export the final paths
+set_gitdir_vars
 
 ######################################################################
 ##
@@ -2007,7 +2023,7 @@ proc incr_font_size {font {amt 1}} {
 
 proc do_gitk {revs {is_submodule false}} {
 	global current_diff_path file_states current_diff_side ui_index
-	global _gitdir _gitworktree
+	global _gitworktree
 
 	# -- Always start gitk through whatever we were loaded with.  This
 	#    lets us bypass using shell process on Windows systems.
@@ -2017,8 +2033,6 @@ proc do_gitk {revs {is_submodule false}} {
 	if {$exe eq {}} {
 		error_popup [mc "Couldn't find gitk in PATH"]
 	} else {
-		global env
-
 		set pwd [pwd]
 
 		if {!$is_submodule} {
@@ -2050,13 +2064,11 @@ proc do_gitk {revs {is_submodule false}} {
 			# TODO we could make life easier (start up faster?) for gitk
 			# by setting these to the appropriate values to allow gitk
 			# to skip the heuristics to find their proper value
-			unset env(GIT_DIR)
-			unset env(GIT_WORK_TREE)
+			unset_gitdir_vars
 		}
 		safe_exec_bg [concat $cmd $revs "--" "--"]
 
-		set env(GIT_DIR) $_gitdir
-		set env(GIT_WORK_TREE) $_gitworktree
+		set_gitdir_vars
 		cd $pwd
 
 		if {[info exists main_status]} {
@@ -2079,21 +2091,16 @@ proc do_git_gui {} {
 	if {$exe eq {}} {
 		error_popup [mc "Couldn't find git gui in PATH"]
 	} else {
-		global env
-		global _gitdir _gitworktree
-
 		# see note in do_gitk about unsetting these vars when
 		# running tools in a submodule
-		unset env(GIT_DIR)
-		unset env(GIT_WORK_TREE)
+		unset_gitdir_vars
 
 		set pwd [pwd]
 		cd $current_diff_path
 
 		safe_exec_bg [concat $exe gui]
 
-		set env(GIT_DIR) $_gitdir
-		set env(GIT_WORK_TREE) $_gitworktree
+		set_gitdir_vars
 		cd $pwd
 
 		set status_operation [$::main_status \
