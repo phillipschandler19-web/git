@@ -1100,6 +1100,41 @@ unset argv0dir
 ##
 ## repository setup
 
+proc find_worktree_from_gitdir {} {
+	# Directory 'parent' of a repository named 'parent/.git' might be the worktree.
+	# Assure parent is a worktree and using the git repository already discovered.
+	# Also, handle case of being in a worktree's gitdir, where file "gitdir" points to
+	# gitlink file .git in the real worktree.
+	set worktree {}
+	if {[file tail $::_gitdir] eq {.git}} {
+		if {[catch {
+			set gitdir_parent [file dirname $::_gitdir]
+			set worktree [git -C $gitdir_parent rev-parse --show-toplevel]
+			set parent_gitdir [git -C $worktree rev-parse --absolute-git-dir]
+			if {$::_gitdir ne $parent_gitdir} {
+				set worktree {}
+			}
+		}]} {
+			set worktree {}
+		}
+	} elseif [file exists {gitdir}] {
+		if {[catch {
+			set fd_gitdir [open {gitdir} {r}]
+			set gitlink_parent [file dirname [read $fd_gitdir]]
+			catch {close $fd_gitdir}
+			set worktree [git -C $gitlink_parent rev-parse --show-toplevel]
+			set parent_gitdir [git -C $worktree rev-parse --absolute-git-dir]
+			if {$::_gitdir ne $parent_gitdir} {
+				set worktree {}
+			}
+		}]} {
+			catch {close $fd_gitdir}
+			set worktree {}
+		}
+	}
+	return $worktree
+}
+
 proc is_gitvars_error {err} {
 	set havevars 0
 	set GIT_DIR {}
@@ -1174,6 +1209,13 @@ if {[catch {
 	}
 	set _gitworktree {}
 	set _prefix {}
+}
+
+if {[is_bare]} {
+	# Maybe we are in an embedded or worktree specific gitdir
+	if {[set _gitworktree [find_worktree_from_gitdir]] ne {}} {
+		set _prefix {}
+	}
 }
 
 if {![is_bare]} {
