@@ -3014,100 +3014,123 @@ proc normalize_relpath {path} {
 	}
 }
 
+proc find_path_type {head path} {
+	if {$path eq {./}} {
+		# the root-tree exists in every rev, ls-tree gives data on the contents,
+		# not the type of tree itself. So, if the rev exists, return {tree}
+		if {[catch {set objtype [git ls-tree $head]}]} {
+			set objtype {}
+		} else {
+			set objtype {tree}
+		}
+	} else {
+		# test that the path exists in head, ls-tree gives info on the path only
+		if {[catch {set objtype [git ls-tree {--format=%(objecttype)} $head $path]}]} {
+			set objtype {}
+		}
+	}
+	return $objtype
+}
+
 # -- Not a normal commit type invocation?  Do that instead!
 #
 switch -- $subcommand {
 browser -
 blame {
 	if {$subcommand eq "blame"} {
-		set subcommand_args {[--line=<num>] rev? path}
+		set subcommand_args {[--line=<num>] <[rev] [--] filename | [--] filename rev>}
+		set required_objtype blob
 	} else {
-		set subcommand_args {rev? path}
+		set subcommand_args {<[rev] [--] directory | [--] directory rev>}
+		set required_objtype tree
 	}
-	if {$argv eq {}} usage
+	set maxargs [llength $subcommand_args]
+	set nargs [llength $argv]
+	if {$nargs < 1 || $nargs > $maxargs} usage
 	set head {}
+	set althead {}
 	set path {}
+	set altpath {}
+	set canswap 1
 	set jump_spec {}
-	set is_path 0
-	foreach a $argv {
-		set p [file join $_prefix $a]
 
-		if {$is_path || [file exists $p]} {
-			if {$path ne {}} usage
-			set path [normalize_relpath $p]
-			break
-		} elseif {$a eq {--}} {
-			if {$path ne {}} {
-				if {$head ne {}} usage
-				set head $path
-				set path {}
+	# assume: [--line=num] [head] [--] path as the possible arguments, in order.
+	# head and path may need a swap later.
+	for {set iarg 0} {$iarg < $nargs} {incr iarg} {
+		set arg [lindex $argv $iarg]
+		if {$arg eq {--}} {
+			# next arg is the path, prevent or FORCE swap?
+			if {$iarg == $nargs - 2} {
+				set canswap 0
+			} elseif {$iarg == $nargs - 3} {
+				set canswap 2
+			} else {
+				usage
 			}
-			set is_path 1
-		} elseif {[regexp {^--line=(\d+)$} $a a lnum]} {
-			if {$jump_spec ne {} || $head ne {}} usage
+		} elseif {[regexp {^--line=(\d+)$} $arg arg lnum]} {
+			# --line can only be the first arg
+			if {$iarg != 0 || $maxargs < 4} usage
 			set jump_spec [list $lnum]
+		} elseif {$iarg == $nargs - 1} {
+			# assume final argument is path
+			set path [normalize_relpath [file join $_prefix $arg]]
+			set althead $arg
 		} elseif {$head eq {}} {
-			if {$head ne {}} usage
-			set head $a
-			set is_path 1
+			# assume the other argument is head
+			set head $arg
+			set altpath [normalize_relpath [file join $_prefix $arg]]
 		} else {
 			usage
 		}
 	}
-	unset is_path
 
-	if {$head ne {} && $path eq {}} {
-		if {[string index $head 0] eq {/}} {
-			set path [normalize_relpath $head]
-			set head {}
-		} else {
-			set path [normalize_relpath $_prefix$head]
-			set head {}
-		}
-	}
-
+	# no swapping allowed if head not given, use current branch (HEAD)
 	if {$head eq {}} {
 		load_current_branch
-	} else {
-		if {[regexp [string map "@@ [expr $hashlength - 1]" {^[0-9a-f]{1,@@}$}] $head]} {
-			if {[catch {
-					set head [git rev-parse --verify $head]
-				} err]} {
-				if {[tk windowingsystem] eq "win32"} {
-					tk_messageBox -icon error -title [mc Error] -message $err
-				} else {
-					puts stderr $err
-				}
-				exit 1
-			}
+		set head $current_branch
+		set canswap 0
+	}
+
+	# -- before "rev" arg means we got -- path head
+	if {$canswap == 2} {
+		set head $althead
+		set path $altpath
+		set canswap 0
+	}
+
+	set objtype [find_path_type $head $path]
+	if {$objtype eq {} && $canswap} {
+		set objtype [find_path_type $althead $altpath]
+		if {$objtype ne {}} {
+			set head $althead
+			set path $altpath
 		}
-		set current_branch $head
+	}
+	set current_branch $head
+
+	# check that path exists in head, and objtype matches need
+	if {$objtype ne $required_objtype} {
+		switch -- $required_objtype {
+			tree {set err [strcat \
+				[mc "'%s' is not a directory in rev '%s'" $path $head]]}
+			blob {set err [strcat \
+				[mc "'%s' is not a filename in rev '%s'" $path $head]]}
+		}
+		if {[tk windowingsystem] eq "win32"} {
+			catch {wm withdraw .}
+			error_popup $err
+		} else {
+			puts stderr $err
+		}
+		exit 1
 	}
 
 	wm deiconify .
 	switch -- $subcommand {
 	browser {
-		if {$jump_spec ne {}} usage
-		if {$head eq {}} {
-			if {$path ne {} && [file isdirectory $path]} {
-				set head $current_branch
-			} else {
-				set head $path
-				set path {}
-			}
-		}
 		browser::new $head $path
 	}
-	blame   {
-		if {$head eq {} && ![file exists $path]} {
-			catch {wm withdraw .}
-			tk_messageBox \
-				-icon error \
-				-type ok \
-				-title [mc "git-gui: fatal error"] \
-				-message [mc "fatal: cannot stat path %s: No such file or directory" $path]
-			exit 1
-		}
+	blame {
 		blame::new $head $path $jump_spec
 	}
 	}
