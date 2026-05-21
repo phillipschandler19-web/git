@@ -1155,8 +1155,8 @@ if {[catch {
 		exit 1
 	}
 	if {[catch {
-		set _gitdir [git rev-parse --git-dir]
-	} err]} {
+			set _gitdir [git rev-parse --git-dir]
+		} err]} {
 		catch {wm withdraw .}
 		error_popup [strcat [mc "Unusable repo/worktree:"] " [pwd] "\n\n$err"]
 	}
