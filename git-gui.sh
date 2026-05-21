@@ -1177,17 +1177,14 @@ if {[catch {
 }
 
 if {![is_bare]} {
-	if {[catch {
-		cd $_gitworktree
-	} err]} {
+	if {[catch {cd $_gitworktree} err]} {
 		catch {wm withdraw .}
-		error_popup [strcat [mc "Cannot change to discovered worktree: "] \
-			"$_gitworktree" "\n\n$err"]
+		error_popup [strcat [mc "No working directory"] " $_gitworktree:\n\n$err"]
 		exit 1
 	}
 } elseif {![is_enabled bare]} {
 	catch {wm withdraw .}
-	error_popup [strcat [mc "Cannot use bare repository:"] "\n\n" $_gitdir]
+	error_popup [strcat [mc "Cannot use bare repository:"] "\n\n$_gitdir"]
 	exit 1
 }
 
