@@ -3004,7 +3004,11 @@ proc normalize_relpath {path} {
 		}
 		lappend elements $item
 	}
-	return [eval file join $elements]
+	if {$elements ne {}} {
+		return [eval file join $elements]
+	} else {
+		return {./}
+	}
 }
 
 # -- Not a normal commit type invocation?  Do that instead!
