@@ -3127,7 +3127,7 @@ blame {
 	browser {
 		browser::new $head $path
 	}
-	blame {
+	blame   {
 		blame::new $head $path $jump_spec
 	}
 	}
