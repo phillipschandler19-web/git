@@ -1108,26 +1108,26 @@ proc find_worktree_from_gitdir {} {
 	set worktree {}
 	if {[file tail $::_gitdir] eq {.git}} {
 		if {[catch {
-			set gitdir_parent [file dirname $::_gitdir]
-			set worktree [git -C $gitdir_parent rev-parse --show-toplevel]
-			set parent_gitdir [git -C $worktree rev-parse --absolute-git-dir]
-			if {$::_gitdir ne $parent_gitdir} {
-				set worktree {}
-			}
-		}]} {
+				set gitdir_parent [file dirname $::_gitdir]
+				set worktree [git -C $gitdir_parent rev-parse --show-toplevel]
+				set parent_gitdir [git -C $worktree rev-parse --absolute-git-dir]
+				if {$::_gitdir ne $parent_gitdir} {
+					set worktree {}
+				}
+			}]} {
 			set worktree {}
 		}
 	} elseif [file exists {gitdir}] {
 		if {[catch {
-			set fd_gitdir [open {gitdir} {r}]
-			set gitlink_parent [file dirname [read $fd_gitdir]]
-			catch {close $fd_gitdir}
-			set worktree [git -C $gitlink_parent rev-parse --show-toplevel]
-			set parent_gitdir [git -C $worktree rev-parse --absolute-git-dir]
-			if {$::_gitdir ne $parent_gitdir} {
-				set worktree {}
-			}
-		}]} {
+				set fd_gitdir [open {gitdir} {r}]
+				set gitlink_parent [file dirname [read $fd_gitdir]]
+				catch {close $fd_gitdir}
+				set worktree [git -C $gitlink_parent rev-parse --show-toplevel]
+				set parent_gitdir [git -C $worktree rev-parse --absolute-git-dir]
+				if {$::_gitdir ne $parent_gitdir} {
+					set worktree {}
+				}
+			}]} {
 			catch {close $fd_gitdir}
 			set worktree {}
 		}
