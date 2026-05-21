@@ -1144,8 +1144,7 @@ if {[catch {
 		set _prefix {}
 		}]
 	&& [catch {
-		# beware that from the .git dir this sets _gitdir to .
-		# and _prefix to the empty string
+		# beware that from the .git dir this sets _prefix to the empty string
 		set _gitdir [git rev-parse --absolute-git-dir]
 		set _prefix [git rev-parse --show-prefix]
 	} err]} {
