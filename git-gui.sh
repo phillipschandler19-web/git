@@ -1166,9 +1166,9 @@ if {$_gitdir eq {}} {
 
 # find worktree, continue without if not required
 if {[catch {
-	set _gitworktree [git rev-parse --show-toplevel]
-	set _prefix [git rev-parse --show-prefix]
-} err]} {
+		set _gitworktree [git rev-parse --show-toplevel]
+		set _prefix [git rev-parse --show-prefix]
+	} err]} {
 	if {[is_gitvars_error $err]} {
 		exit 1
 	}
@@ -1183,7 +1183,7 @@ if {![is_bare]} {
 		catch {wm withdraw .}
 		error_popup [strcat [mc "Cannot change to discovered worktree: "] \
 			"$_gitworktree" "\n\n$err"]
-		exit 1;
+		exit 1
 	}
 } elseif {![is_enabled bare]} {
 	catch {wm withdraw .}
