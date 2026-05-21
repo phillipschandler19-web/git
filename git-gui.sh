@@ -1157,12 +1157,12 @@ proc unset_gitdir_vars {} {
 	catch {unset env(GIT_WORK_TREE)}
 }
 
-# find repository.
+# find repository
 set _gitdir {}
 if {$_gitdir eq {}} {
 	if {[catch {
-		set _gitdir [git rev-parse --absolute-git-dir]
-	} err]} {
+			set _gitdir [git rev-parse --absolute-git-dir]
+		} err]} {
 		if {[is_gitvars_error $err]} {
 			exit 1
 		}
