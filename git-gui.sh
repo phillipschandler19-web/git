@@ -1153,7 +1153,7 @@ proc is_gitvars_error {err} {
 	set GIT_DIR {}
 	set GIT_WORK_TREE {}
 	catch {set GIT_DIR $::env(GIT_DIR); set havevars 1}
-	catch {set GIT_WORK_TREE $::env(GIT_WORK_TREE) ; set havevars 1}
+	catch {set GIT_WORK_TREE $::env(GIT_WORK_TREE); set havevars 1}
 
 	if {$havevars} {
 		catch {wm withdraw .}
