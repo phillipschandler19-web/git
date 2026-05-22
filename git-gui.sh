@@ -1183,6 +1183,7 @@ if {$_prefix ne {}} {
 		exit 1
 	}
 	set _gitworktree [pwd]
+	catch {unset env(GIT_WORK_TREE)}
 	unset cdup
 } elseif {![is_enabled bare]} {
 	if {[is_bare]} {
@@ -1199,6 +1200,7 @@ if {$_prefix ne {}} {
 		exit 1
 	}
 	set _gitworktree [pwd]
+	catch {unset env(GIT_WORK_TREE)}
 }
 set _reponame [file split [file normalize $_gitdir]]
 if {[lindex $_reponame end] eq {.git}} {
@@ -1208,7 +1210,6 @@ if {[lindex $_reponame end] eq {.git}} {
 }
 
 set env(GIT_DIR) $_gitdir
-set env(GIT_WORK_TREE) $_gitworktree
 
 ######################################################################
 ##
@@ -2007,7 +2008,7 @@ proc incr_font_size {font {amt 1}} {
 
 proc do_gitk {revs {is_submodule false}} {
 	global current_diff_path file_states current_diff_side ui_index
-	global _gitdir _gitworktree
+	global _gitdir
 
 	# -- Always start gitk through whatever we were loaded with.  This
 	#    lets us bypass using shell process on Windows systems.
@@ -2041,18 +2042,16 @@ proc do_gitk {revs {is_submodule false}} {
 				}
 				set revs $old_sha1...$new_sha1
 			}
-			# GIT_DIR and GIT_WORK_TREE for the submodule are not the ones
-			# we've been using for the main repository, so unset them.
+			# GIT_DIR for the submodule is not the one we've been using for
+			# the main repository, so unset it. (GIT_WORK_TREE is already unset.)
 			# TODO we could make life easier (start up faster?) for gitk
 			# by setting these to the appropriate values to allow gitk
 			# to skip the heuristics to find their proper value
 			unset env(GIT_DIR)
-			unset env(GIT_WORK_TREE)
 		}
 		safe_exec_bg [concat $cmd $revs "--" "--"]
 
 		set env(GIT_DIR) $_gitdir
-		set env(GIT_WORK_TREE) $_gitworktree
 		cd $pwd
 
 		if {[info exists main_status]} {
@@ -2076,12 +2075,11 @@ proc do_git_gui {} {
 		error_popup [mc "Couldn't find git gui in PATH"]
 	} else {
 		global env
-		global _gitdir _gitworktree
+		global _gitdir
 
-		# see note in do_gitk about unsetting these vars when
+		# see note in do_gitk about unsetting this variable when
 		# running tools in a submodule
 		unset env(GIT_DIR)
-		unset env(GIT_WORK_TREE)
 
 		set pwd [pwd]
 		cd $current_diff_path
@@ -2089,7 +2087,6 @@ proc do_git_gui {} {
 		safe_exec_bg [concat $exe gui]
 
 		set env(GIT_DIR) $_gitdir
-		set env(GIT_WORK_TREE) $_gitworktree
 		cd $pwd
 
 		set status_operation [$::main_status \
